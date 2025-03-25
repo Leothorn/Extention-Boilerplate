@@ -3,6 +3,9 @@ export class FileUploader {
         this.container = document.getElementById(containerId);
         this.setupDropZone();
         this.loadStoredFiles();
+        this.processingFiles = new Set();
+        this.MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        this.BACKEND_URL = 'http://localhost:5001';
     }
 
     setupDropZone() {
@@ -15,6 +18,7 @@ export class FileUploader {
                 <p>or</p>
                 <input type="file" id="fileInput" accept=".pdf,.csv" multiple>
                 <label for="fileInput" class="file-input-label">Select Files</label>
+                <p class="file-limits">Maximum file size: ${this.formatFileSize(this.MAX_FILE_SIZE)}</p>
             </div>
             <div class="stored-files"></div>
         `;
@@ -43,30 +47,71 @@ export class FileUploader {
         });
     }
 
+    validateFile(file) {
+        // Check file size
+        if (file.size > this.MAX_FILE_SIZE) {
+            throw new Error(`File size exceeds maximum limit of ${this.formatFileSize(this.MAX_FILE_SIZE)}`);
+        }
+
+        // Check file type
+        const fileType = file.type.toLowerCase();
+        const fileName = file.name.toLowerCase();
+        const isPDF = fileType === 'application/pdf' || fileName.endsWith('.pdf');
+        const isCSV = fileType === 'text/csv' || 
+                     fileType === 'application/vnd.ms-excel' || 
+                     fileType === 'application/csv' || 
+                     fileName.endsWith('.csv');
+
+        if (!isPDF && !isCSV) {
+            throw new Error('Only PDF and CSV files are supported');
+        }
+    }
+
     async handleFiles(files) {
         for (const file of files) {
-            if (!file.name.toLowerCase().endsWith('.pdf') && !file.name.toLowerCase().endsWith('.csv')) {
-                alert('Only PDF and CSV files are supported');
-                continue;
-            }
-
+            let fileElement = null;
             try {
-                // Show processing state
-                const fileElement = this.createFileElement(file, 'Processing...');
+                // Validate file
+                this.validateFile(file);
+
+                if (this.processingFiles.has(file.name)) {
+                    alert(`${file.name} is already being processed`);
+                    continue;
+                }
+
+                this.processingFiles.add(file.name);
+                
+                // Show processing state with progress
+                fileElement = this.createFileElement(file, 'Processing...');
+                const progressBar = this.createProgressBar();
+                fileElement.appendChild(progressBar);
                 this.container.querySelector('.stored-files').appendChild(fileElement);
 
                 // Process file with backend
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('http://localhost:5000/process_file', {
-                    method: 'POST',
-                    body: formData
-                });
+                let response;
+                try {
+                    response = await fetch(`${this.BACKEND_URL}/process_file`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } catch (fetchError) {
+                    throw new Error(`Failed to connect to backend server. Please make sure the server is running at ${this.BACKEND_URL}`);
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
 
                 const data = await response.json();
 
                 if (data.success) {
+                    // Update progress to 100%
+                    progressBar.style.width = '100%';
+                    
                     // Store file and analysis
                     await this.storeFile({
                         name: file.name,
@@ -84,12 +129,44 @@ export class FileUploader {
                 }
             } catch (error) {
                 console.error('Error processing file:', error);
-                alert(`Error processing ${file.name}: ${error.message}`);
-                // Remove failed file element
-                fileElement.remove();
+                if (fileElement) {
+                    this.showError(fileElement, error.message);
+                } else {
+                    // If fileElement wasn't created yet, show error in a new element
+                    const errorElement = document.createElement('div');
+                    errorElement.className = 'stored-file error';
+                    errorElement.innerHTML = `
+                        <span class="file-name">${file.name}</span>
+                        <span class="error-message">${error.message}</span>
+                    `;
+                    this.container.querySelector('.stored-files').appendChild(errorElement);
+                }
+            } finally {
+                this.processingFiles.delete(file.name);
             }
         }
         this.loadStoredFiles();
+    }
+
+    createProgressBar() {
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress-container';
+        
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        progressBar.style.width = '0%';
+        
+        progressContainer.appendChild(progressBar);
+        return progressContainer;
+    }
+
+    showError(fileElement, message) {
+        fileElement.innerHTML = `
+            <span class="file-name">${fileElement.querySelector('.file-name').textContent}</span>
+            <span class="file-size">${fileElement.querySelector('.file-size').textContent}</span>
+            <span class="error-message">${message}</span>
+            <button class="delete-file" data-name="${fileElement.querySelector('.file-name').textContent}">×</button>
+        `;
     }
 
     createFileElement(file, status) {
@@ -236,5 +313,4 @@ export class FileUploader {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
-} 
 } 
