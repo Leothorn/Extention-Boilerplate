@@ -11,6 +11,7 @@ from typing import Optional, Dict, List
 from pathlib import Path
 from pydantic import BaseModel
 import base64
+import tempfile
 
 # Get the absolute path to the .env file
 ENV_PATH = Path(__file__).parent.parent / '.env'
@@ -42,8 +43,7 @@ app.add_middleware(
 # Configure Gemini API
 try:
     genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash')  # Using Gemini Flash 2.0 specifically
-    vision_model = genai.GenerativeModel('gemini-pro-vision')  # For handling PDFs and images
+    model = genai.GenerativeModel('gemini-2.0-flash')
     # Test the API key with a simple request
     model.generate_content("Test connection")
 except Exception as e:
@@ -51,7 +51,7 @@ except Exception as e:
 
 # Constants
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-ALLOWED_EXTENSIONS = {'.pdf', '.csv'}
+ALLOWED_EXTENSIONS = {'.pdf', '.csv', '.jpg', '.jpeg', '.png', '.gif'}
 
 # Create a thread pool for CPU-bound tasks
 thread_pool = ThreadPoolExecutor(max_workers=4)
@@ -87,31 +87,18 @@ async def analyze_with_gemini(file_content: bytes, file_name: str) -> str:
     """Analyze file content with Gemini Flash 2.0 API asynchronously"""
     def _generate():
         try:
-            # For PDFs, we need to convert the content to a format Gemini can process
-            if file_name.lower().endswith('.pdf'):
-                # Convert PDF bytes to base64
-                file_base64 = base64.b64encode(file_content).decode('utf-8')
+            # Create a temporary file to store the uploaded content
+            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file_name).suffix) as temp_file:
+                temp_file.write(file_content)
+                temp_file_path = temp_file.name
+
+            try:
+                # Upload file using Gemini API
+                client = genai.Client()
+                myfile = client.files.upload(file=temp_file_path)
                 
-                # Create a prompt for PDF analysis
-                prompt = f"""Please analyze this PDF document '{file_name}' and provide a detailed summary:
-
-File Content (Base64):
-{file_base64}
-
-Please provide:
-1. A brief overview of the document
-2. Key points or findings
-3. Any notable patterns or insights
-4. Recommendations if applicable"""
-
-                # Use vision model for PDFs with the base64 content
-                response = vision_model.generate_content([prompt, file_base64])
-            else:
-                # For non-PDF files, use the regular model
-                prompt = f"""Please analyze the following file '{file_name}' and provide a detailed summary:
-
-File Content:
-{file_content.decode('utf-8', errors='ignore')}
+                # Create a prompt for analysis
+                prompt = f"""Please analyze this file '{file_name}' and provide a detailed summary:
 
 Please provide:
 1. A brief overview
@@ -119,9 +106,21 @@ Please provide:
 3. Any notable patterns or insights
 4. Recommendations if applicable"""
 
-                response = model.generate_content(prompt)
+                # Generate content using the uploaded file
+                result = client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=[
+                        myfile,
+                        "\n\n",
+                        prompt
+                    ],
+                )
                 
-            return response.text
+                return result.text
+            finally:
+                # Clean up the temporary file
+                os.unlink(temp_file_path)
+                
         except Exception as e:
             raise HTTPException(
                 status_code=500,
