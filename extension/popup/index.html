@@ -6,13 +6,33 @@
 </head>
 <body>
     <div class="container">
-        <div id="fileUploader"></div>
-        <div id="chatContainer">
-            <div id="chatHistory"></div>
-            <div class="input-container">
-                <textarea id="userInput" placeholder="Type your message..."></textarea>
-                <button id="sendButton">Send</button>
+        <div class="tabs">
+            <button class="tab-button active" data-tab="chat">Chat</button>
+            <button class="tab-button" data-tab="files">Files</button>
+        </div>
+
+        <div class="tab-content active" id="chatTab">
+            <div class="section">
+                <div class="section-title">System Prompt</div>
+                <textarea id="prompt" placeholder="Enter your system prompt here...">You are a helpful AI assistant. Please provide clear and concise responses.</textarea>
+                <button id="savePrompt" class="save-prompt">Save Prompt</button>
             </div>
+            
+            <div class="section">
+                <div class="section-title">Chat History</div>
+                <div id="chatHistory" class="chat-history"></div>
+                <button id="clearHistory" class="clear-history">Clear History</button>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Your Question</div>
+                <textarea id="input" placeholder="Enter your question..."></textarea>
+                <button id="send">Send to Gemini</button>
+            </div>
+        </div>
+
+        <div class="tab-content" id="filesTab">
+            <div id="fileUploader"></div>
         </div>
     </div>
     <script type="module" src="popup.js"></script>

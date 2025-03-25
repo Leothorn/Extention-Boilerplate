@@ -3,81 +3,24 @@ import { FileUploader } from './components/FileUploader.js';
 // Initialize file uploader
 const fileUploader = new FileUploader('fileUploader');
 
-// Chat functionality
-const chatHistory = document.getElementById('chatHistory');
-const userInput = document.getElementById('userInput');
-const sendButton = document.getElementById('sendButton');
+// Tab handling
+const tabButtons = document.querySelectorAll('.tab-button');
+const tabContents = document.querySelectorAll('.tab-content');
 
-// Load chat history
-chrome.storage.local.get(['chatHistory'], (result) => {
-    if (result.chatHistory) {
-        result.chatHistory.forEach(message => {
-            appendMessage(message.text, message.type);
-        });
-    }
-});
-
-// Send message
-sendButton.addEventListener('click', async () => {
-    const message = userInput.value.trim();
-    if (!message) return;
-
-    // Clear input
-    userInput.value = '';
-
-    // Add user message to chat
-    appendMessage(message, 'user');
-
-    // Save to history
-    saveToHistory(message, 'user');
-
-    try {
-        // Send to backend
-        const response = await fetch('http://localhost:5000/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ message })
-        });
-
-        const data = await response.json();
+tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        // Remove active class from all buttons and contents
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
         
-        // Add assistant response to chat
-        appendMessage(data.response, 'assistant');
-        
-        // Save to history
-        saveToHistory(data.response, 'assistant');
-    } catch (error) {
-        console.error('Error:', error);
-        appendMessage('Error: Could not connect to the backend server', 'error');
-    }
-});
-
-// Enter key to send
-userInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendButton.click();
-    }
-});
-
-function appendMessage(text, type) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${type}-message`;
-    messageDiv.textContent = text;
-    chatHistory.appendChild(messageDiv);
-    chatHistory.scrollTop = chatHistory.scrollHeight;
-}
-
-function saveToHistory(text, type) {
-    chrome.storage.local.get(['chatHistory'], (result) => {
-        const history = result.chatHistory || [];
-        history.push({ text, type, timestamp: new Date().toISOString() });
-        chrome.storage.local.set({ chatHistory: history });
+        // Add active class to clicked button and corresponding content
+        button.classList.add('active');
+        const tabId = button.dataset.tab;
+        document.getElementById(`${tabId}Tab`).classList.add('active');
     });
-}
+});
 
+// Chat functionality
 document.addEventListener('DOMContentLoaded', function() {
     const promptInput = document.getElementById('prompt');
     const input = document.getElementById('input');
