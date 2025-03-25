@@ -113,7 +113,8 @@ Please provide:
                         file_text = f.read()
                     response = model.generate_content(f"{prompt}\n\nFile Content:\n{file_text}")
                 
-                return response.text
+                # Return the raw response for debugging
+                return str(response)
             finally:
                 # Clean up the temporary file
                 os.unlink(temp_file_path)
