@@ -265,9 +265,25 @@ export class FileUploader {
             response.files.forEach(file => {
                 const fileElement = document.createElement('div');
                 fileElement.className = 'stored-file';
+                
+                // Create content preview
+                let contentPreview = '';
+                if (file.content) {
+                    const textPreview = file.content.text.substring(0, 100) + '...';
+                    contentPreview = `
+                        <div class="file-preview">
+                            <div class="preview-text">${textPreview}</div>
+                            ${file.content.images.length > 0 ? 
+                                `<div class="preview-images">${file.content.images.length} images</div>` : 
+                                ''}
+                        </div>
+                    `;
+                }
+
                 fileElement.innerHTML = `
                     <span class="file-name">${file.name}</span>
                     <span class="file-size">${this.formatFileSize(file.size)}</span>
+                    ${contentPreview}
                     <button class="view-analysis" data-analysis="${encodeURIComponent(file.analysis)}">View Analysis</button>
                     <button class="delete-file" data-name="${file.name}">×</button>
                 `;
@@ -276,7 +292,7 @@ export class FileUploader {
                 // Add view analysis handler
                 const viewButton = fileElement.querySelector('.view-analysis');
                 viewButton.addEventListener('click', () => {
-                    this.showAnalysis(file.analysis, file.name);
+                    this.showAnalysis(file.analysis, file.name, file.content);
                 });
             });
 
@@ -312,5 +328,66 @@ export class FileUploader {
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    showAnalysis(analysis, fileName, content) {
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'analysis-modal';
+        
+        // Create content preview
+        let contentPreview = '';
+        if (content) {
+            contentPreview = `
+                <div class="content-preview">
+                    <h4>File Content</h4>
+                    <div class="text-preview">
+                        <pre>${content.text.substring(0, 1000)}${content.text.length > 1000 ? '...' : ''}</pre>
+                    </div>
+                    ${content.images.length > 0 ? `
+                        <div class="image-preview">
+                            <h4>Images (${content.images.length})</h4>
+                            <div class="image-grid">
+                                ${content.images.map(img => `
+                                    <img src="data:image/jpeg;base64,${img}" alt="Extracted image">
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Analysis for ${fileName}</h3>
+                    <button class="close-modal">×</button>
+                </div>
+                <div class="modal-body">
+                    ${contentPreview}
+                    <div class="analysis-section">
+                        <h4>Analysis</h4>
+                        <pre>${analysis}</pre>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add to document
+        document.body.appendChild(modal);
+
+        // Add close handler
+        const closeButton = modal.querySelector('.close-modal');
+        closeButton.addEventListener('click', () => {
+            modal.remove();
+        });
+
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
     }
 } 

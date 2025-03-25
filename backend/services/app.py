@@ -8,9 +8,12 @@ import PyPDF2
 import io
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+from typing import Optional, Dict, List
 from pathlib import Path
 from pydantic import BaseModel
+import base64
+from PIL import Image
+import fitz  # PyMuPDF for better PDF handling
 
 # Get the absolute path to the .env file
 ENV_PATH = Path(__file__).parent.parent / '.env'
@@ -65,6 +68,11 @@ class ChatResponse(BaseModel):
     response: str
     error: Optional[str] = None
 
+class FileContent(BaseModel):
+    text: str
+    images: List[str] = []  # Base64 encoded images
+    metadata: Dict = {}
+
 def validate_file(file: UploadFile) -> None:
     """Validate file type and size"""
     # Check file size
@@ -82,45 +90,80 @@ def validate_file(file: UploadFile) -> None:
             detail=f"Unsupported file type. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
         )
 
-async def process_pdf(file_content: bytes) -> str:
-    """Process PDF file and extract text asynchronously"""
+async def process_pdf(file_content: bytes) -> FileContent:
+    """Process PDF file and extract text and images asynchronously"""
     def _process():
         try:
-            pdf_file = io.BytesIO(file_content)
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            # Use PyMuPDF for better PDF handling
+            pdf_document = fitz.open(stream=file_content, filetype="pdf")
             text = ""
-            for page in pdf_reader.pages:
-                text += page.extract_text() + "\n"
-            return text
+            images = []
+            
+            for page_num in range(len(pdf_document)):
+                page = pdf_document[page_num]
+                text += page.get_text()
+                
+                # Extract images
+                image_list = page.get_images()
+                for img_index, img in enumerate(image_list):
+                    xref = img[0]
+                    base_image = pdf_document.extract_image(xref)
+                    image_bytes = base_image["image"]
+                    
+                    # Convert to base64
+                    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                    images.append(image_base64)
+            
+            pdf_document.close()
+            return FileContent(
+                text=text,
+                images=images,
+                metadata={"type": "pdf", "pages": len(pdf_document)}
+            )
         except Exception as e:
             raise HTTPException(
                 status_code=400,
                 detail=f"Error processing PDF: {str(e)}"
             )
 
-    # Run CPU-bound PDF processing in thread pool
     return await asyncio.get_event_loop().run_in_executor(thread_pool, _process)
 
-async def process_csv(file_content: bytes) -> str:
+async def process_csv(file_content: bytes) -> FileContent:
     """Process CSV file and convert to text representation asynchronously"""
     def _process():
         try:
             df = pd.read_csv(io.BytesIO(file_content))
-            return df.to_string()
+            return FileContent(
+                text=df.to_string(),
+                metadata={
+                    "type": "csv",
+                    "rows": len(df),
+                    "columns": list(df.columns)
+                }
+            )
         except Exception as e:
             raise HTTPException(
                 status_code=400,
                 detail=f"Error processing CSV: {str(e)}"
             )
 
-    # Run CPU-bound CSV processing in thread pool
     return await asyncio.get_event_loop().run_in_executor(thread_pool, _process)
 
-async def analyze_with_gemini(text_content: str, file_name: str) -> str:
+async def analyze_with_gemini(content: FileContent, file_name: str) -> str:
     """Analyze content with Gemini Flash 2.0 API asynchronously"""
+    # Prepare content for analysis
+    text_content = content.text[:8000]  # Limit text length for API
+    
+    # Create a prompt that includes both text and image information
     prompt = f"""Please analyze the following content from {file_name} and provide a detailed summary:
 
-{text_content[:8000]}  # Limit content length for API
+Text Content:
+{text_content}
+
+{'Number of Images: ' + str(len(content.images)) if content.images else ''}
+
+Metadata:
+{content.metadata}
 
 Please provide:
 1. A brief overview
@@ -128,7 +171,6 @@ Please provide:
 3. Any notable patterns or insights
 4. Recommendations if applicable"""
 
-    # Run Gemini API call in thread pool since it's not async
     def _generate():
         try:
             response = model.generate_content(prompt)
@@ -153,19 +195,20 @@ async def process_file(file: UploadFile = File(...)):
         # Process file based on type
         file_extension = os.path.splitext(file.filename)[1].lower()
         if file_extension == '.pdf':
-            text_content = await process_pdf(file_content)
+            content = await process_pdf(file_content)
         elif file_extension == '.csv':
-            text_content = await process_csv(file_content)
+            content = await process_csv(file_content)
         else:
             raise HTTPException(status_code=400, detail="Unsupported file type")
 
         # Analyze with Gemini Flash 2.0
-        analysis = await analyze_with_gemini(text_content, file.filename)
+        analysis = await analyze_with_gemini(content, file.filename)
 
         return {
             'success': True,
             'fileName': file.filename,
-            'analysis': analysis
+            'analysis': analysis,
+            'content': content.dict()  # Include extracted content
         }
 
     except HTTPException as he:
