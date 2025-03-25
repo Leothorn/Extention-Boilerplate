@@ -93,10 +93,6 @@ async def analyze_with_gemini(file_content: bytes, file_name: str) -> str:
                 temp_file_path = temp_file.name
 
             try:
-                # Upload file using Gemini API
-                client = genai.Client()
-                myfile = client.files.upload(file=temp_file_path)
-                
                 # Create a prompt for analysis
                 prompt = f"""Please analyze this file '{file_name}' and provide a detailed summary:
 
@@ -106,17 +102,18 @@ Please provide:
 3. Any notable patterns or insights
 4. Recommendations if applicable"""
 
-                # Generate content using the uploaded file
-                result = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=[
-                        myfile,
-                        "\n\n",
-                        prompt
-                    ],
-                )
+                # For images, use the vision model
+                if file_name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                    with open(temp_file_path, 'rb') as f:
+                        image_data = f.read()
+                    response = model.generate_content([prompt, image_data])
+                else:
+                    # For text-based files (PDF, CSV)
+                    with open(temp_file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        file_text = f.read()
+                    response = model.generate_content(f"{prompt}\n\nFile Content:\n{file_text}")
                 
-                return result.text
+                return response.text
             finally:
                 # Clean up the temporary file
                 os.unlink(temp_file_path)
