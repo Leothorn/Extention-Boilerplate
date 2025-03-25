@@ -1,0 +1,77 @@
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    margin: 10px 0;
+    transition: all 0.3s ease;
+}
+
+.drop-zone.drag-over {
+    border-color: #2196F3;
+    background-color: rgba(33, 150, 243, 0.1);
+}
+
+.drop-zone-content {
+    margin-bottom: 15px;
+}
+
+.file-input-label {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #2196F3;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.file-input-label:hover {
+    background-color: #1976D2;
+}
+
+#fileInput {
+    display: none;
+}
+
+.stored-files {
+    margin-top: 15px;
+    text-align: left;
+}
+
+.stored-file {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    background-color: #f9f9f9;
+}
+
+.file-name {
+    flex: 1;
+    margin-right: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-size {
+    color: #666;
+    font-size: 0.9em;
+    margin-right: 10px;
+}
+
+.delete-file {
+    background: none;
+    border: none;
+    color: #ff4444;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.delete-file:hover {
+    color: #cc0000;
+} 
