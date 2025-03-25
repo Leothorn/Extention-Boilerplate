@@ -109,12 +109,23 @@ Please provide:
                     response = model.generate_content([prompt, image_data])
                 else:
                     # For text-based files (PDF, CSV)
-                    with open(temp_file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        file_text = f.read()
-                    response = model.generate_content(f"{prompt}\n\nFile Content:\n{file_text}")
+                    with open(temp_file_path, 'rb') as f:  # Changed to 'rb' for binary reading
+                        file_content = f.read()
+                    response = model.generate_content([
+                        {"text": prompt},
+                        {"inlineData": {
+                            "mimeType": "application/pdf" if file_name.lower().endswith('.pdf') else "text/plain",
+                            "data": base64.b64encode(file_content).decode('utf-8')
+                        }}
+                    ])
                 
-                # Return the raw response for debugging
-                return str(response)
+                # Return all available response properties
+                return {
+                    'text': response.text if hasattr(response, 'text') else None,
+                    'prompt_feedback': response.prompt_feedback if hasattr(response, 'prompt_feedback') else None,
+                    'candidates': [str(c) for c in response.candidates] if hasattr(response, 'candidates') else None,
+                    'raw_response': str(response)
+                }
             finally:
                 # Clean up the temporary file
                 os.unlink(temp_file_path)
