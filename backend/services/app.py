@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
+from google.genai import types
 import os
 from dotenv import load_dotenv
 import pandas as pd
@@ -43,15 +44,19 @@ app.add_middleware(
 # Configure Gemini API
 try:
     genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash')
+    # Initialize the client
+    client = genai.Client()
     # Test the API key with a simple request
-    model.generate_content("Test connection")
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=["Test connection"]
+    )
 except Exception as e:
     raise ValueError(f"Failed to configure Gemini API: {str(e)}. Please check your API key and try again.")
 
 # Constants
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-ALLOWED_EXTENSIONS = {'.pdf', '.csv', '.jpg', '.jpeg', '.png', '.gif'}
+ALLOWED_EXTENSIONS = {'.pdf', '.csv', '.jpg', '.jpeg', '.png', '.gif', '.txt', '.mp3', '.mp4'}
 
 # Create a thread pool for CPU-bound tasks
 thread_pool = ThreadPoolExecutor(max_workers=4)
@@ -93,6 +98,27 @@ async def analyze_with_gemini(file_content: bytes, file_name: str) -> str:
                 temp_file_path = temp_file.name
 
             try:
+                # Determine mime type based on file extension
+                extension = Path(file_name).suffix.lower()
+                mime_type = {
+                    '.pdf': 'application/pdf',
+                    '.txt': 'text/plain',
+                    '.csv': 'text/csv',
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.png': 'image/png',
+                    '.gif': 'image/gif',
+                    '.mp3': 'audio/mpeg',
+                    '.mp4': 'video/mp4'
+                }.get(extension, 'application/octet-stream')
+
+                # Upload the file with proper mime type
+                with open(temp_file_path, 'rb') as f:
+                    myfile = client.files.upload(
+                        file=f,
+                        config=types.UploadFileConfig(mime_type=mime_type)
+                    )
+
                 # Create a prompt for analysis
                 prompt = f"""Please analyze this file '{file_name}' and provide a detailed summary:
 
@@ -102,20 +128,18 @@ Please provide:
 3. Any notable patterns or insights
 4. Recommendations if applicable"""
 
-                # Initialize Gemini client
-                client = genai.Client()
-                
-                # Upload the file using the proper API
-                myfile = client.files.upload(file=temp_file_path)
-                
+                # For videos, wait for processing
+                if extension == '.mp4':
+                    import time
+                    while myfile.state.name == "PROCESSING":
+                        print("processing video...")
+                        time.sleep(5)
+                        myfile = client.files.get(name=myfile.name)
+
                 # Generate content using the uploaded file
                 result = client.models.generate_content(
                     model="gemini-2.0-flash",
-                    contents=[
-                        myfile,
-                        "\n\n",
-                        prompt
-                    ],
+                    contents=[prompt, myfile]
                 )
                 
                 # Return all available response properties
@@ -126,9 +150,9 @@ Please provide:
                     'raw_response': str(result),
                     'file_info': {
                         'name': myfile.name,
-                        'mime_type': myfile.mimeType,
-                        'size': myfile.sizeBytes,
-                        'state': myfile.state
+                        'mime_type': myfile.mime_type if hasattr(myfile, 'mime_type') else mime_type,
+                        'size': myfile.size_bytes if hasattr(myfile, 'size_bytes') else None,
+                        'state': myfile.state.name if hasattr(myfile, 'state') else None
                     }
                 }
             finally:
