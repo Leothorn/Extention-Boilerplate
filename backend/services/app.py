@@ -127,19 +127,37 @@ Please provide:
                     {"mime_type": mime_type, "data": base64.b64encode(file_data).decode()}
                 ])
                 
-                # Return all available response properties
-                return {
-                    'text': response.text if hasattr(response, 'text') else None,
-                    'prompt_feedback': response.prompt_feedback if hasattr(response, 'prompt_feedback') else None,
-                    'candidates': [str(c) for c in response.candidates] if hasattr(response, 'candidates') else None,
-                    'raw_response': str(response),
-                    'file_info': {
-                        'name': file_name,
-                        'mime_type': mime_type,
-                        'size': len(file_data),
-                        'state': 'ACTIVE'
-                    }
+                # Extract response properties safely
+                response_dict = {}
+                
+                # Get text content
+                try:
+                    response_dict['text'] = response.text
+                except (AttributeError, TypeError):
+                    response_dict['text'] = None
+                
+                # Get prompt feedback if available
+                try:
+                    response_dict['prompt_feedback'] = str(response.prompt_feedback)
+                except (AttributeError, TypeError):
+                    response_dict['prompt_feedback'] = None
+                
+                # Get candidates if available
+                try:
+                    response_dict['candidates'] = [str(c) for c in response.candidates]
+                except (AttributeError, TypeError):
+                    response_dict['candidates'] = None
+                
+                # Add file info
+                response_dict['file_info'] = {
+                    'name': file_name,
+                    'mime_type': mime_type,
+                    'size': len(file_data),
+                    'state': 'ACTIVE'
                 }
+                
+                return response_dict
+                
             finally:
                 # Clean up the temporary file
                 os.unlink(temp_file_path)
