@@ -102,29 +102,34 @@ Please provide:
 3. Any notable patterns or insights
 4. Recommendations if applicable"""
 
-                # For images, use the vision model
-                if file_name.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
-                    with open(temp_file_path, 'rb') as f:
-                        image_data = f.read()
-                    response = model.generate_content([prompt, image_data])
-                else:
-                    # For text-based files (PDF, CSV)
-                    with open(temp_file_path, 'rb') as f:  # Changed to 'rb' for binary reading
-                        binary_content = f.read()  # Changed variable name to avoid conflict
-                    response = model.generate_content([
-                        {"text": prompt},
-                        {"inlineData": {
-                            "mimeType": "application/pdf" if file_name.lower().endswith('.pdf') else "text/plain",
-                            "data": base64.b64encode(binary_content).decode('utf-8')
-                        }}
-                    ])
+                # Initialize Gemini client
+                client = genai.Client()
+                
+                # Upload the file using the proper API
+                myfile = client.files.upload(file=temp_file_path)
+                
+                # Generate content using the uploaded file
+                result = client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=[
+                        myfile,
+                        "\n\n",
+                        prompt
+                    ],
+                )
                 
                 # Return all available response properties
                 return {
-                    'text': response.text if hasattr(response, 'text') else None,
-                    'prompt_feedback': response.prompt_feedback if hasattr(response, 'prompt_feedback') else None,
-                    'candidates': [str(c) for c in response.candidates] if hasattr(response, 'candidates') else None,
-                    'raw_response': str(response)
+                    'text': result.text if hasattr(result, 'text') else None,
+                    'prompt_feedback': result.prompt_feedback if hasattr(result, 'prompt_feedback') else None,
+                    'candidates': [str(c) for c in result.candidates] if hasattr(result, 'candidates') else None,
+                    'raw_response': str(result),
+                    'file_info': {
+                        'name': myfile.name,
+                        'mime_type': myfile.mimeType,
+                        'size': myfile.sizeBytes,
+                        'state': myfile.state
+                    }
                 }
             finally:
                 # Clean up the temporary file
