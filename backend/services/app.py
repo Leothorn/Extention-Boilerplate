@@ -1,7 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
-from google.genai import types
 import os
 from dotenv import load_dotenv
 import pandas as pd
@@ -44,13 +43,10 @@ app.add_middleware(
 # Configure Gemini API
 try:
     genai.configure(api_key=GOOGLE_API_KEY)
-    # Initialize the client
-    client = genai.Client()
+    # Initialize the model
+    model = genai.GenerativeModel('gemini-2.0-flash')
     # Test the API key with a simple request
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=["Test connection"]
-    )
+    response = model.generate_content("Test connection")
 except Exception as e:
     raise ValueError(f"Failed to configure Gemini API: {str(e)}. Please check your API key and try again.")
 
@@ -112,13 +108,6 @@ async def analyze_with_gemini(file_content: bytes, file_name: str) -> str:
                     '.mp4': 'video/mp4'
                 }.get(extension, 'application/octet-stream')
 
-                # Upload the file with proper mime type
-                with open(temp_file_path, 'rb') as f:
-                    myfile = client.files.upload(
-                        file=f,
-                        config=types.UploadFileConfig(mime_type=mime_type)
-                    )
-
                 # Create a prompt for analysis
                 prompt = f"""Please analyze this file '{file_name}' and provide a detailed summary:
 
@@ -128,31 +117,27 @@ Please provide:
 3. Any notable patterns or insights
 4. Recommendations if applicable"""
 
-                # For videos, wait for processing
-                if extension == '.mp4':
-                    import time
-                    while myfile.state.name == "PROCESSING":
-                        print("processing video...")
-                        time.sleep(5)
-                        myfile = client.files.get(name=myfile.name)
+                # For images and PDFs, read the file and pass directly
+                with open(temp_file_path, 'rb') as f:
+                    file_data = f.read()
 
-                # Generate content using the uploaded file
-                result = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=[prompt, myfile]
-                )
+                # Generate content using the file data
+                response = model.generate_content([
+                    prompt,
+                    {"mime_type": mime_type, "data": base64.b64encode(file_data).decode()}
+                ])
                 
                 # Return all available response properties
                 return {
-                    'text': result.text if hasattr(result, 'text') else None,
-                    'prompt_feedback': result.prompt_feedback if hasattr(result, 'prompt_feedback') else None,
-                    'candidates': [str(c) for c in result.candidates] if hasattr(result, 'candidates') else None,
-                    'raw_response': str(result),
+                    'text': response.text if hasattr(response, 'text') else None,
+                    'prompt_feedback': response.prompt_feedback if hasattr(response, 'prompt_feedback') else None,
+                    'candidates': [str(c) for c in response.candidates] if hasattr(response, 'candidates') else None,
+                    'raw_response': str(response),
                     'file_info': {
-                        'name': myfile.name,
-                        'mime_type': myfile.mime_type if hasattr(myfile, 'mime_type') else mime_type,
-                        'size': myfile.size_bytes if hasattr(myfile, 'size_bytes') else None,
-                        'state': myfile.state.name if hasattr(myfile, 'state') else None
+                        'name': file_name,
+                        'mime_type': mime_type,
+                        'size': len(file_data),
+                        'state': 'ACTIVE'
                     }
                 }
             finally:
