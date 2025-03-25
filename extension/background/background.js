@@ -11,10 +11,23 @@ async function sendToBackend(message, prompt) {
                 system_prompt: prompt 
             })
         });
-        return await response.json();
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            return { 
+                success: false, 
+                error: errorData.detail || `HTTP error! status: ${response.status}` 
+            };
+        }
+
+        const data = await response.json();
+        return data;
     } catch (error) {
         console.error('Error communicating with backend:', error);
-        return { success: false, error: error.message };
+        return { 
+            success: false, 
+            error: error.message || 'Failed to connect to backend server. Please make sure the server is running.' 
+        };
     }
 }
 

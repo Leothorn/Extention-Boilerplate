@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show loading state
         sendButton.disabled = true;
         promptInput.disabled = true;
+        input.disabled = true;
 
         // Add user message to history
         addMessageToHistory(text, 'user');
@@ -131,14 +132,21 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.success) {
                 addMessageToHistory(response.response, 'assistant');
             } else {
-                addMessageToHistory('Error: ' + (response.error || 'Unknown error'), 'assistant');
+                const errorMessage = response.error || 'Unknown error occurred';
+                addMessageToHistory(`Error: ${errorMessage}`, 'error');
+                console.error('Chat error:', errorMessage);
             }
         } catch (error) {
-            addMessageToHistory('Error: ' + error.message, 'assistant');
+            const errorMessage = error.message || 'Failed to send message';
+            addMessageToHistory(`Error: ${errorMessage}`, 'error');
+            console.error('Chat error:', error);
         } finally {
+            // Reset UI state
             sendButton.disabled = false;
             promptInput.disabled = false;
+            input.disabled = false;
             input.value = ''; // Clear input after sending
+            input.focus(); // Focus back on input
         }
     });
 

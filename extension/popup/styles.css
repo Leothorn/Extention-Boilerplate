@@ -96,6 +96,13 @@ textarea {
     margin-right: 20px;
 }
 
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    margin-right: 20px;
+    border: 1px solid #ef9a9a;
+}
+
 .message-time {
     font-size: 0.8em;
     color: #666;
@@ -181,40 +188,58 @@ button:disabled {
 }
 
 .stored-file {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 8px 0;
     display: flex;
     align-items: center;
-    padding: 8px;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    margin-bottom: 5px;
-    background-color: #f9f9f9;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
-.file-name {
+.stored-file .file-name {
     flex: 1;
-    margin-right: 10px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    min-width: 150px;
+    font-weight: 500;
 }
 
-.file-size {
+.stored-file .file-size {
     color: #666;
-    font-size: 0.9em;
-    margin-right: 10px;
+    font-size: 12px;
 }
 
-.delete-file {
+.stored-file .file-status {
+    color: #2196F3;
+    font-size: 12px;
+}
+
+.stored-file .delete-file {
     background: none;
     border: none;
-    color: #ff4444;
-    font-size: 1.2em;
+    color: #dc3545;
     cursor: pointer;
-    padding: 0 5px;
+    font-size: 18px;
+    padding: 0 4px;
 }
 
-.delete-file:hover {
-    color: #cc0000;
+.stored-file .delete-file:hover {
+    color: #c82333;
+}
+
+.stored-file .view-analysis {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.stored-file .view-analysis:hover {
+    background-color: #45a049;
 }
 
 /* Analysis modal styles */
@@ -304,4 +329,58 @@ button:disabled {
 
 .view-analysis:hover {
     background-color: #2d8745;
+}
+
+/* Progress Bar Styles */
+.progress-container {
+    width: 100%;
+    height: 4px;
+    background-color: #f0f0f0;
+    border-radius: 2px;
+    margin: 4px 0;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #4CAF50;
+    width: 0%;
+    transition: width 0.3s ease-in-out;
+}
+
+/* Error Message Styles */
+.error-message {
+    color: #f44336;
+    font-size: 12px;
+    margin: 4px 0;
+    display: block;
+    width: 100%;
+}
+
+/* File Limits Info */
+.file-limits {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+}
+
+/* Error States */
+.stored-file.error {
+    border-color: #f44336;
+    background-color: #ffebee;
+}
+
+.stored-file.error .file-name {
+    color: #d32f2f;
+}
+
+/* Server Connection Error */
+.server-error {
+    background-color: #fff3e0;
+    border: 1px solid #ffb74d;
+    color: #e65100;
+    padding: 8px;
+    margin: 8px 0;
+    border-radius: 4px;
+    font-size: 12px;
 } 
