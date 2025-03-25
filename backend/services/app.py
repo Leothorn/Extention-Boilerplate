@@ -110,12 +110,12 @@ Please provide:
                 else:
                     # For text-based files (PDF, CSV)
                     with open(temp_file_path, 'rb') as f:  # Changed to 'rb' for binary reading
-                        file_content = f.read()
+                        binary_content = f.read()  # Changed variable name to avoid conflict
                     response = model.generate_content([
                         {"text": prompt},
                         {"inlineData": {
                             "mimeType": "application/pdf" if file_name.lower().endswith('.pdf') else "text/plain",
-                            "data": base64.b64encode(file_content).decode('utf-8')
+                            "data": base64.b64encode(binary_content).decode('utf-8')
                         }}
                     ])
                 
