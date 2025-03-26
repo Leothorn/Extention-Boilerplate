@@ -1,7 +1,7 @@
 /* Tab styles */
 .tabs {
     display: flex;
-    border-bottom: 1px solid #ccc;
+    gap: 10px;
     margin-bottom: 15px;
 }
 
@@ -12,12 +12,11 @@
     cursor: pointer;
     font-size: 14px;
     color: #666;
-    border-bottom: 2px solid transparent;
 }
 
 .tab-button.active {
-    color: #2196F3;
-    border-bottom-color: #2196F3;
+    color: #4285f4;
+    border-bottom: 2px solid #4285f4;
 }
 
 .tab-content {
@@ -28,30 +27,286 @@
     display: block;
 }
 
-/* Existing styles */
+/* General styles */
 body {
     width: 400px;
-    padding: 15px;
-    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 .container {
+    padding: 16px;
+    background-color: #ffffff;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    margin: 0;
+    color: #1a73e8;
+    font-size: 24px;
+}
+
+/* File upload section */
+.file-upload-section {
+    margin-bottom: 20px;
+}
+
+.upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-area.dragover {
+    border-color: #1a73e8;
+    background-color: #f8f9fa;
+}
+
+.upload-content {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 10px;
 }
 
-.section {
-    border: 1px solid #e0e0e0;
-    padding: 10px;
+.upload-icon {
+    width: 48px;
+    height: 48px;
+    opacity: 0.6;
+}
+
+.upload-content p {
+    margin: 0;
+    color: #5f6368;
+}
+
+.upload-content .sub-text {
+    font-size: 12px;
+    color: #80868b;
+}
+
+/* File list */
+.file-list {
+    margin-top: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.file-container {
+    margin-bottom: 16px;
+    border: 1px solid #e8eaed;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e8eaed;
+}
+
+.file-summary {
+    padding: 12px;
+    background-color: #ffffff;
+    border-top: 1px solid #e8eaed;
+}
+
+.summary-header {
+    font-weight: 500;
+    color: #5f6368;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.summary-text {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px;
+    border: 1px solid #e8eaed;
     border-radius: 4px;
-    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #202124;
+    background-color: #f8f9fa;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.summary-text.error {
+    border-color: #ea4335;
+    background-color: #fce8e6;
+    color: #ea4335;
+}
+
+.summary-text:focus {
+    outline: none;
+    border-color: #1a73e8;
+    background-color: #ffffff;
+}
+
+.file-item.retrieved {
+    background-color: #f0f8ff;
+    border-left: 4px solid #4a90e2;
+}
+
+.file-item.retrieved .file-status {
+    color: #4a90e2;
+}
+
+.file-item.completed {
+    background-color: #f0fff4;
+    border-left: 4px solid #48bb78;
+}
+
+.file-item.error {
+    background-color: #fff5f5;
+    border-left: 4px solid #f56565;
+}
+
+.file-name {
+    flex: 1;
+    font-size: 14px;
+    color: #202124;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #5f6368;
+    margin: 0 12px;
+}
+
+.file-status {
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+.file-item.retrieved .file-status {
+    background-color: #ebf5ff;
+}
+
+.file-item.completed .file-status {
+    background-color: #e6ffed;
+    color: #48bb78;
+}
+
+.file-item.error .file-status {
+    background-color: #fff5f5;
+    color: #f56565;
+}
+
+/* Chat section */
+.chat-section {
+    border: 1px solid #e8eaed;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.chat-messages {
+    height: 300px;
+    overflow-y: auto;
+    padding: 16px;
+    background-color: #f8f9fa;
+}
+
+.message {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.message.user {
+    background-color: #e3f2fd;
+    margin-left: auto;
+    color: #1a73e8;
+}
+
+.message.assistant {
+    background-color: #ffffff;
+    margin-right: auto;
+    color: #202124;
+    border: 1px solid #e8eaed;
+}
+
+.message.error {
+    background-color: #fce8e6;
+    color: #ea4335;
+    margin: 0 auto;
+}
+
+.message.success {
+    background-color: #e6f4ea;
+    color: #34a853;
+    margin: 0 auto;
+}
+
+.input-area {
+    display: flex;
+    padding: 12px;
+    background-color: #ffffff;
+    border-top: 1px solid #e8eaed;
+}
+
+#userInput {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #e8eaed;
+    border-radius: 4px;
+    margin-right: 8px;
+    resize: none;
+    height: 40px;
+    font-family: inherit;
+}
+
+#userInput:focus {
+    outline: none;
+    border-color: #1a73e8;
+}
+
+#sendButton {
+    padding: 8px 16px;
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#sendButton:hover {
+    background-color: #1557b0;
+}
+
+#sendButton:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Existing styles */
+.section {
+    margin-bottom: 20px;
 }
 
 .section-title {
     font-weight: bold;
-    margin-bottom: 5px;
-    color: #4285f4;
+    margin-bottom: 8px;
+    color: #333;
 }
 
 textarea {
@@ -60,7 +315,7 @@ textarea {
     border: 1px solid #ccc;
     border-radius: 4px;
     resize: vertical;
-    font-family: inherit;
+    margin-bottom: 10px;
 }
 
 #prompt {
@@ -74,33 +329,10 @@ textarea {
 .chat-history {
     max-height: 300px;
     overflow-y: auto;
-    margin-bottom: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
     padding: 10px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-}
-
-.chat-message {
     margin-bottom: 10px;
-    padding: 8px;
-    border-radius: 4px;
-}
-
-.user-message {
-    background-color: #e3f2fd;
-    margin-left: 20px;
-}
-
-.assistant-message {
-    background-color: #f5f5f5;
-    margin-right: 20px;
-}
-
-.error-message {
-    background-color: #ffebee;
-    color: #c62828;
-    margin-right: 20px;
-    border: 1px solid #ef9a9a;
 }
 
 .message-time {
@@ -110,18 +342,17 @@ textarea {
 }
 
 button {
-    width: 100%;
-    padding: 8px;
+    padding: 8px 16px;
     background-color: #4285f4;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-weight: bold;
+    margin-right: 10px;
 }
 
 button:hover {
-    background-color: #3367d6;
+    background-color: #357abd;
 }
 
 button:disabled {
@@ -485,4 +716,116 @@ button:disabled {
     padding: 8px;
     background-color: #f8f9fa;
     border-radius: 4px;
+}
+
+/* PDF Upload Styles */
+.file-input-container {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    text-align: center;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.file-input-container:hover {
+    border-color: #4285f4;
+}
+
+#file-name {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+.response-area {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    white-space: pre-wrap;
+}
+
+.file-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.reprocess-file,
+.delete-file {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #5f6368;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.reprocess-file:hover,
+.delete-file:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.reprocess-file svg,
+.delete-file svg {
+    width: 16px;
+    height: 16px;
+}
+
+.file-item.completed .reprocess-file {
+    color: #34a853;
+}
+
+.file-item.error .reprocess-file {
+    color: #ea4335;
+}
+
+.delete-file {
+    color: #ea4335;
+}
+
+.delete-file:hover {
+    background-color: rgba(234, 67, 53, 0.1);
+}
+
+/* File prompt styles */
+.file-prompt {
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e8eaed;
+}
+
+.prompt-header {
+    font-weight: 500;
+    color: #5f6368;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.prompt-input {
+    width: 100%;
+    min-height: 60px;
+    padding: 8px;
+    border: 1px solid #e8eaed;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #202124;
+    background-color: #ffffff;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.prompt-input:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
 } 

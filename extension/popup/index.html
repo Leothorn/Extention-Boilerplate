@@ -1,40 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Gemini Assistant</title>
+    <title>PDF Processor</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <div class="tabs">
-            <button class="tab-button active" data-tab="chat">Chat</button>
-            <button class="tab-button" data-tab="files">Files</button>
+        <div class="header">
+            <h1>PDF Processor</h1>
         </div>
 
-        <div class="tab-content active" id="chatTab">
-            <div class="section">
-                <div class="section-title">System Prompt</div>
-                <textarea id="prompt" placeholder="Enter your system prompt here...">You are a helpful AI assistant. Please provide clear and concise responses.</textarea>
-                <button id="savePrompt" class="save-prompt">Save Prompt</button>
-            </div>
-            
-            <div class="section">
-                <div class="section-title">Chat History</div>
-                <div id="chatHistory" class="chat-history"></div>
-                <button id="clearHistory" class="clear-history">Clear History</button>
-            </div>
-
-            <div class="section">
-                <div class="section-title">Your Question</div>
-                <textarea id="input" placeholder="Enter your question..."></textarea>
-                <button id="send">Send to Gemini</button>
+        <div class="file-upload-section">
+            <div id="dropZone" class="upload-area">
+                <div class="upload-content">
+                    <img src="upload-icon.svg" alt="Upload" class="upload-icon">
+                    <p>Drag and drop PDF files here</p>
+                    <p class="sub-text">or click to select files</p>
+                </div>
+                <input type="file" id="fileInput" multiple accept=".pdf" style="display: none;">
             </div>
         </div>
 
-        <div class="tab-content" id="filesTab">
-            <div id="fileUploader"></div>
+        <div id="fileList" class="file-list">
+            <!-- Files will be added here -->
+        </div>
+
+        <div class="chat-section">
+            <div id="chatMessages" class="chat-messages">
+                <!-- Chat messages will be added here -->
+            </div>
+            <div class="input-area">
+                <textarea id="userInput" placeholder="Type your message..."></textarea>
+                <button id="sendButton">Send</button>
+            </div>
         </div>
     </div>
-    <script type="module" src="popup.js"></script>
+
+    <script src="storage.js" type="module"></script>
+    <script src="popup.js" type="module"></script>
 </body>
 </html> 
