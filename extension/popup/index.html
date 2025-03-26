@@ -3,7 +3,8 @@
 <head>
     <title>PDF Processor</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
     <div class="container">
@@ -15,7 +16,7 @@
             <div id="dropZone" class="upload-area">
                 <div class="upload-content">
                     <img src="upload-icon.svg" alt="Upload" class="upload-icon">
-                    <p>Drag and drop PDF files here</p>
+                    <p>Drop PDF files here</p>
                     <p class="sub-text">or click to select files</p>
                 </div>
                 <input type="file" id="fileInput" multiple accept=".pdf" style="display: none;">
@@ -31,9 +32,9 @@
                 <!-- Chat messages will be added here -->
             </div>
             <div class="input-area">
-                <textarea id="userInput" placeholder="Type your message..."></textarea>
+                <textarea id="userInput" placeholder="Type a question about your files..."></textarea>
                 <button id="sendButton" class="ripple">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
                         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
                     </svg>
                 </button>
