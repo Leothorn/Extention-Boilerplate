@@ -184,25 +184,42 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const summary = await storage.getSummary(fileData.id);
                     if (summary) {
                         const summaryDiv = fileContainer.querySelector('.file-summary');
-                        const summaryText = typeof summary === 'object' ? summary.text : summary;
+                        // Check if summary is an object with text property or just a string
+                        const summaryText = typeof summary === 'object' && summary.text ? 
+                            summary.text : 
+                            (typeof summary === 'string' ? summary : '');
                         
-                        // Update the summary textarea
-                        const summaryTextarea = summaryDiv.querySelector('.summary-text');
-                        summaryTextarea.textContent = summaryText;
-                        
-                        // If there was a custom prompt, display it
-                        if (summary.prompt) {
+                        // If there's a prompt in the summary, use it
+                        if (typeof summary === 'object' && summary.prompt) {
                             const promptInput = fileContainer.querySelector('.prompt-input');
                             if (promptInput) {
                                 promptInput.value = summary.prompt;
                             }
                         }
                         
-                        summaryDiv.style.display = 'block';
-                        fileItem.classList.remove('retrieved');
-                        fileItem.classList.add('completed');
-                        statusSpan.textContent = 'Completed';
-                        statusSpan.className = 'file-status completed';
+                        // Update the summary textarea if we have text
+                        if (summaryText) {
+                            const summaryTextarea = summaryDiv.querySelector('.summary-text');
+                            summaryTextarea.textContent = summaryText;
+                            
+                            summaryDiv.style.display = 'block';
+                            fileItem.classList.remove('retrieved');
+                            fileItem.classList.add('completed');
+                            statusSpan.textContent = 'Completed';
+                            statusSpan.className = 'file-status completed';
+                        }
+                    }
+                    
+                    // Add event listeners to all buttons
+                    const applyPromptButton = fileContainer.querySelector('.apply-prompt');
+                    if (applyPromptButton) {
+                        const promptInput = fileContainer.querySelector('.prompt-input');
+                        applyPromptButton.addEventListener('click', () => {
+                            if (promptInput) {
+                                const newPrompt = promptInput.value.trim();
+                                reprocessFile(fileData.id, newPrompt);
+                            }
+                        });
                     }
                 });
             } catch (error) {
@@ -314,9 +331,27 @@ document.addEventListener('DOMContentLoaded', async function() {
                 statusSpan.textContent = 'Processing...';
                 statusSpan.className = 'file-status processing';
                 
+                // Check if we have the actual file object or need to recreate it
+                let fileToSend;
+                if (fileData.file instanceof File) {
+                    fileToSend = fileData.file;
+                } else if (fileData.data) {
+                    // If we have base64 data (from storage), convert it back to a file
+                    try {
+                        const response = await fetch(fileData.data);
+                        const blob = await response.blob();
+                        fileToSend = new File([blob], fileData.name, { type: fileData.type });
+                    } catch (error) {
+                        console.error("Error recreating file from stored data:", error);
+                        throw new Error("Could not recreate file from storage. Please upload the file again.");
+                    }
+                } else {
+                    throw new Error("File data not available. Please upload the file again.");
+                }
+                
                 // Process the file with the backend
                 const formData = new FormData();
-                formData.append('file', fileData.file);
+                formData.append('file', fileToSend);
                 formData.append('prompt', prompt); // Add custom prompt to FormData
                 
                 console.log(`Reprocessing file ${fileData.name} with prompt: ${prompt}`);
