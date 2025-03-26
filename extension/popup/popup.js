@@ -4,6 +4,14 @@ import storage from './storage.js';
 // API base URL for backend
 const API_BASE_URL = 'http://localhost:5001';
 
+// Default prompts for different file types
+const DEFAULT_PROMPTS = {
+    pdf: "Analyze this PDF and provide a detailed summary including key points, findings, and recommendations.",
+    csv: "Analyze this CSV data and provide insights on the patterns, trends, and key statistics.",
+    image: "Describe what you see in this image in detail.",
+    default: "Please analyze this file and provide a comprehensive summary."
+};
+
 // Test connection to backend
 async function testConnection() {
     try {
@@ -58,6 +66,18 @@ function addMessage(message, type = 'info') {
     messageDiv.textContent = message;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Get default prompt based on file type
+function getDefaultPrompt(fileType, fileName) {
+    if (fileType.includes('pdf') || fileName.toLowerCase().endsWith('.pdf')) {
+        return DEFAULT_PROMPTS.pdf;
+    } else if (fileType.includes('csv') || fileName.toLowerCase().endsWith('.csv')) {
+        return DEFAULT_PROMPTS.csv;
+    } else if (fileType.includes('image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
+        return DEFAULT_PROMPTS.image;
+    }
+    return DEFAULT_PROMPTS.default;
 }
 
 // Initialize the application
@@ -157,6 +177,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const fileItem = fileContainer.querySelector('.file-item');
                     const statusSpan = fileItem.querySelector('.file-status');
                     statusSpan.textContent = 'Retrieved';
+                    statusSpan.className = 'file-status retrieved';
                     fileItem.classList.add('retrieved');
 
                     // Load and display summary if available
@@ -166,13 +187,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const summaryText = typeof summary === 'object' ? summary.text : summary;
                         
                         // Update the summary textarea
-                        const summaryTextarea = fileContainer.querySelector('.summary-text');
+                        const summaryTextarea = summaryDiv.querySelector('.summary-text');
                         summaryTextarea.textContent = summaryText;
+                        
+                        // If there was a custom prompt, display it
+                        if (summary.prompt) {
+                            const promptInput = fileContainer.querySelector('.prompt-input');
+                            if (promptInput) {
+                                promptInput.value = summary.prompt;
+                            }
+                        }
                         
                         summaryDiv.style.display = 'block';
                         fileItem.classList.remove('retrieved');
                         fileItem.classList.add('completed');
                         statusSpan.textContent = 'Completed';
+                        statusSpan.className = 'file-status completed';
                     }
                 });
             } catch (error) {
@@ -187,6 +217,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             fileContainer.className = 'file-container';
             fileContainer.id = `file-${fileData.id}`;
             fileContainer.dataset.fileId = fileData.id;
+            
+            // Set default prompt based on file type
+            const defaultPrompt = getDefaultPrompt(fileData.type, fileData.name);
             
             const fileItem = document.createElement('div');
             fileItem.className = 'file-item';
@@ -208,6 +241,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
             `;
             
+            // Add prompt section
+            const promptDiv = document.createElement('div');
+            promptDiv.className = 'file-prompt';
+            promptDiv.innerHTML = `
+                <div class="prompt-header">Custom Prompt:</div>
+                <textarea class="prompt-input" placeholder="Enter custom prompt for this file...">${fileData.prompt || defaultPrompt}</textarea>
+                <button class="apply-prompt" title="Apply this prompt">Apply Prompt</button>
+            `;
+            
             const summaryDiv = document.createElement('div');
             summaryDiv.className = 'file-summary';
             summaryDiv.innerHTML = `
@@ -217,6 +259,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             summaryDiv.style.display = 'none';
             
             fileContainer.appendChild(fileItem);
+            fileContainer.appendChild(promptDiv);
             fileContainer.appendChild(summaryDiv);
 
             // Add button handlers
@@ -224,7 +267,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             deleteButton.addEventListener('click', () => deleteFile(fileData.id));
 
             const reprocessButton = fileItem.querySelector('.reprocess-file');
-            reprocessButton.addEventListener('click', () => reprocessFile(fileData.id));
+            reprocessButton.addEventListener('click', () => {
+                const promptInput = fileContainer.querySelector('.prompt-input');
+                const prompt = promptInput ? promptInput.value.trim() : defaultPrompt;
+                reprocessFile(fileData.id, prompt);
+            });
+            
+            // Add apply prompt button handler
+            const applyPromptButton = promptDiv.querySelector('.apply-prompt');
+            applyPromptButton.addEventListener('click', () => {
+                const promptInput = promptDiv.querySelector('.prompt-input');
+                const prompt = promptInput ? promptInput.value.trim() : defaultPrompt;
+                reprocessFile(fileData.id, prompt);
+            });
 
             return fileContainer;
         }
@@ -244,8 +299,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
 
-        // Reprocess a file
-        async function reprocessFile(fileId) {
+        // Reprocess a file with a custom prompt
+        async function reprocessFile(fileId, prompt) {
             try {
                 const files = await storage.getFiles();
                 const fileData = files.find(f => f.id === fileId);
@@ -257,10 +312,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const fileContainer = document.getElementById(`file-${fileId}`);
                 const statusSpan = fileContainer.querySelector('.file-status');
                 statusSpan.textContent = 'Processing...';
+                statusSpan.className = 'file-status processing';
                 
                 // Process the file with the backend
                 const formData = new FormData();
                 formData.append('file', fileData.file);
+                formData.append('prompt', prompt); // Add custom prompt
                 
                 const response = await fetch(`${API_BASE_URL}/process_file`, {
                     method: 'POST',
@@ -270,8 +327,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Save the summary
-                    await storage.saveSummary(fileId, data.analysis);
+                    // Save the summary along with the prompt
+                    await storage.saveSummary(fileId, {
+                        text: data.analysis.text,
+                        prompt: prompt
+                    });
                     
                     // Update the UI
                     const summaryDiv = fileContainer.querySelector('.file-summary');
@@ -280,10 +340,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     summaryDiv.style.display = 'block';
                     statusSpan.textContent = 'Completed';
+                    statusSpan.className = 'file-status completed';
                     
                     addMessage(`File processed: ${fileData.name}`, 'success');
                 } else {
                     statusSpan.textContent = 'Error';
+                    statusSpan.className = 'file-status error';
                     addMessage(`Error processing file: ${data.error || 'Unknown error'}`, 'error');
                 }
             } catch (error) {
@@ -294,6 +356,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 if (fileContainer) {
                     const statusSpan = fileContainer.querySelector('.file-status');
                     statusSpan.textContent = 'Error';
+                    statusSpan.className = 'file-status error';
                 }
             }
         }
@@ -317,13 +380,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Create a unique ID for the file
                     const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                     
+                    // Get default prompt based on file type
+                    const defaultPrompt = getDefaultPrompt(file.type, file.name);
+                    
                     // Save file to storage
                     await storage.saveFile({
                         id: fileId,
                         name: file.name,
                         size: file.size,
                         type: file.type,
-                        file: file
+                        file: file,
+                        prompt: defaultPrompt
                     });
                     
                     // Create UI for the file
@@ -331,17 +398,28 @@ document.addEventListener('DOMContentLoaded', async function() {
                         id: fileId,
                         name: file.name,
                         size: file.size,
-                        type: file.type
+                        type: file.type,
+                        prompt: defaultPrompt
                     });
                     
                     fileList.appendChild(fileContainer);
                     
+                    // Update status to show it's been uploaded
+                    const statusSpan = fileContainer.querySelector('.file-status');
+                    statusSpan.textContent = 'Uploaded';
+                    statusSpan.className = 'file-status uploaded';
+                    
+                    // Get the prompt from the input
+                    const promptInput = fileContainer.querySelector('.prompt-input');
+                    const prompt = promptInput ? promptInput.value.trim() : defaultPrompt;
+                    
                     // Process the file with the backend
                     const formData = new FormData();
                     formData.append('file', file);
+                    formData.append('prompt', prompt); // Add the prompt
                     
-                    const statusSpan = fileContainer.querySelector('.file-status');
                     statusSpan.textContent = 'Processing...';
+                    statusSpan.className = 'file-status processing';
                     
                     const response = await fetch(`${API_BASE_URL}/process_file`, {
                         method: 'POST',
@@ -351,8 +429,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const data = await response.json();
                     
                     if (data.success) {
-                        // Save the summary
-                        await storage.saveSummary(fileId, data.analysis);
+                        // Save the summary along with the prompt used
+                        await storage.saveSummary(fileId, {
+                            text: data.analysis.text,
+                            prompt: prompt
+                        });
                         
                         // Update the UI
                         const summaryDiv = fileContainer.querySelector('.file-summary');
@@ -361,15 +442,32 @@ document.addEventListener('DOMContentLoaded', async function() {
                         
                         summaryDiv.style.display = 'block';
                         statusSpan.textContent = 'Completed';
+                        statusSpan.className = 'file-status completed';
                         
                         addMessage(`File processed: ${file.name}`, 'success');
                     } else {
                         statusSpan.textContent = 'Error';
+                        statusSpan.className = 'file-status error';
                         addMessage(`Error processing file: ${data.error || 'Unknown error'}`, 'error');
                     }
                 } catch (error) {
                     console.error(`Error processing file ${file.name}:`, error);
                     addMessage(`Error processing file ${file.name}: ${error.message}`, 'error');
+                    
+                    // Find the file container and update status
+                    const fileContainers = Array.from(fileList.querySelectorAll('.file-container'));
+                    const fileContainer = fileContainers.find(container => {
+                        const nameSpan = container.querySelector('.file-name');
+                        return nameSpan && nameSpan.textContent === file.name;
+                    });
+                    
+                    if (fileContainer) {
+                        const statusSpan = fileContainer.querySelector('.file-status');
+                        if (statusSpan) {
+                            statusSpan.textContent = 'Error';
+                            statusSpan.className = 'file-status error';
+                        }
+                    }
                 }
             }
         }
