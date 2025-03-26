@@ -3,6 +3,7 @@
 <head>
     <title>PDF Processor</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -31,7 +32,11 @@
             </div>
             <div class="input-area">
                 <textarea id="userInput" placeholder="Type your message..."></textarea>
-                <button id="sendButton">Send</button>
+                <button id="sendButton" class="ripple">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>

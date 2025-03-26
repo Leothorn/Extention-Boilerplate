@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Add apply prompt button handler
             const applyPromptButton = promptDiv.querySelector('.apply-prompt');
             applyPromptButton.addEventListener('click', () => {
-                const promptInput = promptDiv.querySelector('.prompt-input');
+            const promptInput = promptDiv.querySelector('.prompt-input');
                 const prompt = promptInput ? promptInput.value.trim() : defaultPrompt;
                 reprocessFile(fileData.id, prompt);
             });
@@ -317,7 +317,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Process the file with the backend
                 const formData = new FormData();
                 formData.append('file', fileData.file);
-                formData.append('prompt', prompt); // Add custom prompt
+                formData.append('prompt', prompt); // Add custom prompt to FormData
+                
+                console.log(`Reprocessing file ${fileData.name} with prompt: ${prompt}`);
                 
                 const response = await fetch(`${API_BASE_URL}/process_file`, {
                     method: 'POST',
@@ -416,7 +418,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Process the file with the backend
                     const formData = new FormData();
                     formData.append('file', file);
-                    formData.append('prompt', prompt); // Add the prompt
+                    formData.append('prompt', prompt); // Add the prompt parameter to the form data
                     
                     statusSpan.textContent = 'Processing...';
                     statusSpan.className = 'file-status processing';

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 import os
@@ -439,7 +439,7 @@ Stack Trace: {traceback.format_exc()}
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/process_file")
-async def process_file(file: UploadFile = File(...)):
+async def process_file(file: UploadFile = File(...), prompt: str = Form(None)):
     try:
         # Validate file
         validate_file(file)
@@ -447,8 +447,45 @@ async def process_file(file: UploadFile = File(...)):
         # Read file content
         file_content = await file.read()
         
-        # Analyze with Gemini Flash 2.0
-        analysis = await analyze_with_gemini(file_content, file.filename)
+        # Use provided prompt or default if none provided
+        custom_prompt = prompt
+        if not custom_prompt:
+            # Default prompt based on file type
+            extension = Path(file.filename).suffix.lower()
+            if extension in ['.pdf', '.docx', '.doc', '.txt']:
+                custom_prompt = f"""Please analyze this file '{file.filename}' and provide a detailed summary:
+
+Please provide:
+1. A brief overview
+2. Key points or findings
+3. Any notable patterns or insights
+4. Recommendations if applicable"""
+            elif extension in ['.csv', '.xlsx', '.xls']:
+                custom_prompt = f"""Analyze this data file '{file.filename}' and provide key insights:
+                
+1. Data structure overview
+2. Key statistics and trends
+3. Notable patterns or anomalies
+4. Potential actionable insights"""
+            elif extension in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+                custom_prompt = f"""Describe in detail what you see in this image '{file.filename}':
+                
+1. Main subjects or elements
+2. Visual characteristics
+3. Context or setting
+4. Any notable details or unique features"""
+            else:
+                custom_prompt = f"Please analyze this file '{file.filename}' and provide a comprehensive summary."
+        
+        # Log the prompt being used
+        logger.info(f"""
+=== PROCESSING FILE WITH PROMPT ===
+File: {file.filename}
+Prompt: {custom_prompt}
+""")
+        
+        # Analyze with Gemini Flash 2.0 using the custom prompt
+        analysis = await analyze_with_gemini_custom_prompt(file_content, file.filename, custom_prompt)
 
         return {
             'success': True,
@@ -459,10 +496,92 @@ async def process_file(file: UploadFile = File(...)):
     except HTTPException as he:
         raise he
     except Exception as e:
+        logger.error(f"Error processing file: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
             detail=f"Unexpected error processing file: {str(e)}"
         )
+
+async def analyze_with_gemini_custom_prompt(file_content: bytes, file_name: str, prompt: str) -> str:
+    """Analyze file content with Gemini Flash 2.0 API asynchronously using a custom prompt"""
+    def _generate():
+        try:
+            # Create a temporary file to store the uploaded content
+            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(file_name).suffix) as temp_file:
+                temp_file.write(file_content)
+                temp_file_path = temp_file.name
+
+            try:
+                # Determine mime type based on file extension
+                extension = Path(file_name).suffix.lower()
+                mime_type = {
+                    '.pdf': 'application/pdf',
+                    '.txt': 'text/plain',
+                    '.csv': 'text/csv',
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg',
+                    '.png': 'image/png',
+                    '.gif': 'image/gif',
+                    '.mp3': 'audio/mpeg',
+                    '.mp4': 'video/mp4'
+                }.get(extension, 'application/octet-stream')
+
+                # For images and PDFs, read the file and pass directly
+                with open(temp_file_path, 'rb') as f:
+                    file_data = f.read()
+
+                # Generate content using the file data and custom prompt
+                response = model.generate_content([
+                    prompt,
+                    {"mime_type": mime_type, "data": base64.b64encode(file_data).decode()}
+                ])
+                
+                # Extract response properties safely
+                response_dict = {}
+                
+                # Get text content
+                try:
+                    response_dict['text'] = response.text
+                except (AttributeError, TypeError):
+                    response_dict['text'] = None
+                
+                # Get prompt feedback if available
+                try:
+                    response_dict['prompt_feedback'] = str(response.prompt_feedback)
+                except (AttributeError, TypeError):
+                    response_dict['prompt_feedback'] = None
+                
+                # Get candidates if available
+                try:
+                    response_dict['candidates'] = [str(c) for c in response.candidates]
+                except (AttributeError, TypeError):
+                    response_dict['candidates'] = None
+                
+                # Add file info
+                response_dict['file_info'] = {
+                    'name': file_name,
+                    'mime_type': mime_type,
+                    'size': len(file_data),
+                    'state': 'ACTIVE'
+                }
+                
+                # Add the prompt that was used
+                response_dict['prompt'] = prompt
+                
+                return response_dict
+                
+            finally:
+                # Clean up the temporary file
+                os.unlink(temp_file_path)
+                
+        except Exception as e:
+            logger.error(f"Error in analyze_with_gemini_custom_prompt: {str(e)}\n{traceback.format_exc()}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error analyzing content with Gemini Flash 2.0: {str(e)}"
+            )
+
+    return await asyncio.get_event_loop().run_in_executor(thread_pool, _generate)
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
