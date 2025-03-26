@@ -5,8 +5,9 @@ import storage from './storage.js';
 const API_BASE_URL = 'http://localhost:5001';
 
 // Default prompts for different file types
+// Note: Custom prompts are no longer supported - these defaults will always be used
 const DEFAULT_PROMPTS = {
-    pdf: "Analyze this PDF and provide a detailed summary including key points, findings, and recommendations.",
+    pdf: "Summarize the document and translsate to frnech",
     csv: "Analyze this CSV data and provide insights on the patterns, trends, and key statistics.",
     image: "Describe what you see in this image in detail.",
     default: "Please analyze this file and provide a comprehensive summary."
@@ -56,6 +57,27 @@ function formatFileSize(size) {
     else if (size < 1048576) return (size / 1024).toFixed(1) + ' KB';
     else if (size < 1073741824) return (size / 1048576).toFixed(1) + ' MB';
     else return (size / 1073741824).toFixed(1) + ' GB';
+}
+
+// Helper function to download summary as a text file
+function downloadSummary(fileId, fileName, summaryText) {
+    // Create a blob with the summary text
+    const blob = new Blob([summaryText], { type: 'text/plain' });
+    
+    // Create a temporary anchor element
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(blob);
+    downloadLink.download = `${fileName.replace(/\.[^/.]+$/, '')}_summary.txt`;
+    
+    // Trigger the download
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    
+    // Clean up
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(downloadLink.href);
+    
+    addMessage(`Downloaded summary for ${fileName}`, 'success');
 }
 
 // Helper function to add a message to the chat
@@ -131,6 +153,48 @@ document.addEventListener('DOMContentLoaded', async function() {
             handleFiles(e.target.files);
         });
 
+        // Get all file summaries to include in chat context
+        async function getAllFileSummaries() {
+            try {
+                const files = await storage.getFiles();
+                const summariesPromises = files.map(async (file) => {
+                    const summary = await storage.getSummary(file.id);
+                    if (summary && summary.text) {
+                        return {
+                            id: file.id,
+                            name: file.name, 
+                            text: summary.text
+                        };
+                    }
+                    return null;
+                });
+                
+                const results = await Promise.all(summariesPromises);
+                return results.filter(summary => summary !== null);
+            } catch (error) {
+                console.error('Error getting file summaries:', error);
+                return [];
+            }
+        }
+
+        // Create a context string with all file summaries
+        function createContextWithSummaries(summaries) {
+            if (!summaries || summaries.length === 0) {
+                return "You are a helpful AI assistant specialized in analyzing documents.";
+            }
+            
+            let context = "You are a helpful AI assistant specialized in analyzing documents. ";
+            context += "You have access to the following document summaries:\n\n";
+            
+            summaries.forEach((summary, index) => {
+                context += `DOCUMENT ${index + 1}: ${summary.name}\n`;
+                context += `SUMMARY: ${summary.text}\n\n`;
+            });
+            
+            context += "When answering questions, use information from these documents when relevant.";
+            return context;
+        }
+
         // Send message on button click
         sendButton.addEventListener('click', async () => {
             const message = userInput.value.trim();
@@ -141,6 +205,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             userInput.value = '';
             
             try {
+                // Get all file summaries to include in context
+                const allFileSummaries = await getAllFileSummaries();
+                const contextWithSummaries = createContextWithSummaries(allFileSummaries);
+                
                 // Send message to API
                 const response = await fetch(`${API_BASE_URL}/api/chat`, {
                     method: 'POST',
@@ -149,7 +217,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     },
                     body: JSON.stringify({
                         message: message,
-                        system_prompt: "You are a helpful AI assistant specialized in analyzing documents."
+                        system_prompt: contextWithSummaries
                     })
                 });
                 
@@ -179,6 +247,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     statusSpan.textContent = 'Retrieved';
                     statusSpan.className = 'file-status retrieved';
                     fileItem.classList.add('retrieved');
+                    
+                    // Hide prompt section
+                    const promptDiv = fileContainer.querySelector('.file-prompt');
+                    if (promptDiv) {
+                        promptDiv.style.display = 'none';
+                    }
 
                     // Load and display summary if available
                     const summary = await storage.getSummary(fileData.id);
@@ -207,18 +281,25 @@ document.addEventListener('DOMContentLoaded', async function() {
                             fileItem.classList.add('completed');
                             statusSpan.textContent = 'Completed';
                             statusSpan.className = 'file-status completed';
+                            
+                            // Show download button for completed files
+                            const downloadBtn = fileContainer.querySelector('.download-summary');
+                            if (downloadBtn) {
+                                downloadBtn.style.display = 'inline-flex';
+                                downloadBtn.addEventListener('click', () => {
+                                    downloadSummary(fileData.id, fileData.name, summaryText);
+                                });
+                            }
                         }
                     }
                     
                     // Add event listeners to all buttons
                     const applyPromptButton = fileContainer.querySelector('.apply-prompt');
                     if (applyPromptButton) {
-                        const promptInput = fileContainer.querySelector('.prompt-input');
+                        // Always use default prompt
                         applyPromptButton.addEventListener('click', () => {
-                            if (promptInput) {
-                                const newPrompt = promptInput.value.trim();
-                                reprocessFile(fileData.id, newPrompt);
-                            }
+                            const defaultPrompt = getDefaultPrompt(fileData.type, fileData.name);
+                            reprocessFile(fileData.id, defaultPrompt);
                         });
                     }
                 });
@@ -250,6 +331,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                             <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                         </svg>
                     </button>
+                    <button class="download-summary" title="Download summary" style="display: none;">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                    </button>
                     <button class="delete-file" title="Delete file">
                         <svg viewBox="0 0 24 24" width="16" height="16">
                             <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -261,6 +347,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Add prompt section
             const promptDiv = document.createElement('div');
             promptDiv.className = 'file-prompt';
+            promptDiv.style.display = 'none'; // Hide the prompt section
             promptDiv.innerHTML = `
                 <div class="prompt-header">Custom Prompt:</div>
                 <textarea class="prompt-input" placeholder="Enter custom prompt for this file...">${fileData.prompt || defaultPrompt}</textarea>
@@ -285,18 +372,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const reprocessButton = fileItem.querySelector('.reprocess-file');
             reprocessButton.addEventListener('click', () => {
-                const promptInput = fileContainer.querySelector('.prompt-input');
-                const prompt = promptInput ? promptInput.value.trim() : defaultPrompt;
-                reprocessFile(fileData.id, prompt);
+                const defaultPrompt = getDefaultPrompt(fileData.type, fileData.name);
+                reprocessFile(fileData.id, defaultPrompt);
             });
             
-            // Add apply prompt button handler
+            // Add apply prompt button handler (no longer used but keep for compatibility)
             const applyPromptButton = promptDiv.querySelector('.apply-prompt');
-            applyPromptButton.addEventListener('click', () => {
-            const promptInput = promptDiv.querySelector('.prompt-input');
-                const prompt = promptInput ? promptInput.value.trim() : defaultPrompt;
-                reprocessFile(fileData.id, prompt);
-            });
+            if (applyPromptButton) {
+                applyPromptButton.addEventListener('click', () => {
+                    const defaultPrompt = getDefaultPrompt(fileData.type, fileData.name);
+                    reprocessFile(fileData.id, defaultPrompt);
+                });
+            }
 
             return fileContainer;
         }
@@ -319,33 +406,57 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Reprocess a file with a custom prompt
         async function reprocessFile(fileId, prompt) {
             try {
+                // Get files list for basic metadata
                 const files = await storage.getFiles();
-                const fileData = files.find(f => f.id === fileId);
+                const fileMetadata = files.find(f => f.id === fileId);
                 
-                if (!fileData) {
+                if (!fileMetadata) {
                     throw new Error('File not found');
                 }
+                
+                // Get the FULL file data including file content
+                const fileData = await storage.getFile(fileId);
+                
+                if (!fileData) {
+                    throw new Error('File data not found in storage');
+                }
+                
+                console.log('Reprocessing file data:', {
+                    id: fileData.id,
+                    name: fileData.name,
+                    size: fileData.size,
+                    type: fileData.type,
+                    hasFileData: !!fileData.fileData,
+                    fileDataLength: fileData.fileData ? fileData.fileData.byteLength : 0
+                });
                 
                 const fileContainer = document.getElementById(`file-${fileId}`);
                 const statusSpan = fileContainer.querySelector('.file-status');
                 statusSpan.textContent = 'Processing...';
                 statusSpan.className = 'file-status processing';
                 
-                // Check if we have the actual file object or need to recreate it
+                // Check if we have the file data and recreate the File object
                 let fileToSend;
-                if (fileData.file instanceof File) {
-                    fileToSend = fileData.file;
-                } else if (fileData.data) {
-                    // If we have base64 data (from storage), convert it back to a file
+                if (fileData.fileData) {
+                    console.log('Recreating File from ArrayBuffer');
                     try {
-                        const response = await fetch(fileData.data);
-                        const blob = await response.blob();
-                        fileToSend = new File([blob], fileData.name, { type: fileData.type });
+                        // Create a blob from the ArrayBuffer
+                        const blob = new Blob([fileData.fileData], {type: fileData.type || 'application/pdf'});
+                        fileToSend = new File([blob], fileData.name, { 
+                            type: fileData.type || 'application/pdf',
+                            lastModified: fileData.lastModified || new Date().getTime()
+                        });
+                        console.log('File recreated successfully:', {
+                            name: fileToSend.name,
+                            size: fileToSend.size,
+                            type: fileToSend.type
+                        });
                     } catch (error) {
                         console.error("Error recreating file from stored data:", error);
                         throw new Error("Could not recreate file from storage. Please upload the file again.");
                     }
                 } else {
+                    console.error('No file data available in storage record:', fileData);
                     throw new Error("File data not available. Please upload the file again.");
                 }
                 
@@ -378,6 +489,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     summaryDiv.style.display = 'block';
                     statusSpan.textContent = 'Completed';
                     statusSpan.className = 'file-status completed';
+                    
+                    // Show and enable download button
+                    const downloadBtn = fileContainer.querySelector('.download-summary');
+                    if (downloadBtn) {
+                        downloadBtn.style.display = 'inline-flex';
+                        downloadBtn.addEventListener('click', () => {
+                            downloadSummary(fileId, fileData.name, data.analysis.text);
+                        });
+                    }
                     
                     addMessage(`File processed: ${fileData.name}`, 'success');
                 } else {
@@ -420,17 +540,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                     // Get default prompt based on file type
                     const defaultPrompt = getDefaultPrompt(file.type, file.name);
                     
-                    // Save file to storage
-                    await storage.saveFile({
-                        id: fileId,
-                        name: file.name,
-                        size: file.size,
+                    console.log('Preparing to save file:', { 
+                        name: file.name, 
+                        size: file.size, 
                         type: file.type,
-                        file: file,
-                        prompt: defaultPrompt
+                        id: fileId
                     });
                     
-                    // Create UI for the file
+                    // Create file container first so user sees immediate feedback
                     const fileContainer = createFileContainer({
                         id: fileId,
                         name: file.name,
@@ -446,9 +563,25 @@ document.addEventListener('DOMContentLoaded', async function() {
                     statusSpan.textContent = 'Uploaded';
                     statusSpan.className = 'file-status uploaded';
                     
+                    // Save file to storage with all required data
+                    const savedFileData = await storage.saveFile({
+                        id: fileId,
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        file: file,
+                        prompt: defaultPrompt
+                    });
+                    
+                    console.log('File saved to storage:', {
+                        id: savedFileData.id,
+                        hasData: !!savedFileData.data,
+                        dataLength: savedFileData.data ? savedFileData.data.length : 0
+                    });
+                    
                     // Get the prompt from the input
                     const promptInput = fileContainer.querySelector('.prompt-input');
-                    const prompt = promptInput ? promptInput.value.trim() : defaultPrompt;
+                    const prompt = defaultPrompt; // Always use default prompt, ignoring custom input
                     
                     // Process the file with the backend
                     const formData = new FormData();
@@ -472,6 +605,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                             prompt: prompt
                         });
                         
+                        console.log('File summary saved:', {
+                            id: fileId,
+                            textLength: data.analysis.text.length,
+                            prompt: prompt
+                        });
+                        
                         // Update the UI
                         const summaryDiv = fileContainer.querySelector('.file-summary');
                         const summaryTextarea = summaryDiv.querySelector('.summary-text');
@@ -480,6 +619,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                         summaryDiv.style.display = 'block';
                         statusSpan.textContent = 'Completed';
                         statusSpan.className = 'file-status completed';
+                        
+                        // Show and enable download button
+                        const downloadBtn = fileContainer.querySelector('.download-summary');
+                        if (downloadBtn) {
+                            downloadBtn.style.display = 'inline-flex';
+                            downloadBtn.addEventListener('click', () => {
+                                downloadSummary(fileId, file.name, data.analysis.text);
+                            });
+                        }
                         
                         addMessage(`File processed: ${file.name}`, 'success');
                     } else {
