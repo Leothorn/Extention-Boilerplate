@@ -115,6 +115,85 @@ document.addEventListener('DOMContentLoaded', async function() {
         const chatMessages = document.getElementById('chatMessages');
         const userInput = document.getElementById('userInput');
         const sendButton = document.getElementById('sendButton');
+        
+        // Collapsible sections
+        const fileColumn = document.getElementById('fileColumn');
+        const chatColumn = document.getElementById('chatColumn');
+        const toggleFiles = document.getElementById('toggleFiles');
+        const toggleChat = document.getElementById('toggleChat');
+        
+        // Initialize columns as expanded
+        fileColumn.classList.add('expanded');
+        chatColumn.classList.add('expanded');
+        
+        // Toggle file section
+        toggleFiles.addEventListener('click', (event) => {
+            const isExpanded = fileColumn.classList.contains('expanded');
+            
+            // Toggle classes
+            fileColumn.classList.toggle('collapsed');
+            fileColumn.classList.toggle('expanded');
+            
+            // If we're collapsing, make chat expand
+            if (isExpanded) {
+                chatColumn.classList.add('auto-expand');
+            } else {
+                chatColumn.classList.remove('auto-expand');
+            }
+            
+            // Ensure the toggle button's focus doesn't interfere with animation
+            toggleFiles.blur();
+            
+            // Prevent event from bubbling to the column
+            event.stopPropagation();
+        });
+
+        // Toggle chat section
+        toggleChat.addEventListener('click', (event) => {
+            const isExpanded = chatColumn.classList.contains('expanded');
+            
+            // Toggle classes
+            chatColumn.classList.toggle('collapsed');
+            chatColumn.classList.toggle('expanded');
+            
+            // If we're collapsing, make files expand
+            if (isExpanded) {
+                fileColumn.classList.add('auto-expand');
+            } else {
+                fileColumn.classList.remove('auto-expand');
+            }
+            
+            // Ensure the toggle button's focus doesn't interfere with animation
+            toggleChat.blur();
+            
+            // Prevent event from bubbling to the column
+            event.stopPropagation();
+        });
+
+        // Initialize collapsible functionality
+        function setupCollapsibleColumns() {
+            // Make entire collapsed panel clickable - BUT exclude the toggle button area
+            fileColumn.addEventListener('click', (event) => {
+                // Only proceed if the column is collapsed and the click wasn't on/inside the toggle button
+                if (fileColumn.classList.contains('collapsed') && 
+                    !event.target.closest('.toggle-section')) {
+                    toggleFiles.click();
+                    event.stopPropagation();
+                }
+            });
+            
+            chatColumn.addEventListener('click', (event) => {
+                // Only proceed if the column is collapsed and the click wasn't on/inside the toggle button
+                if (chatColumn.classList.contains('collapsed') && 
+                    !event.target.closest('.toggle-section')) {
+                    toggleChat.click();
+                    event.stopPropagation();
+                }
+            });
+        }
+
+        // Setup collapsible functionality
+        setupCollapsibleColumns();
 
         // Test connection to backend
         const isConnected = await testConnection();
@@ -265,7 +344,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         
                         // If there's a prompt in the summary, use it
                         if (typeof summary === 'object' && summary.prompt) {
-                            const promptInput = fileContainer.querySelector('.prompt-input');
+                        const promptInput = fileContainer.querySelector('.prompt-input');
                             if (promptInput) {
                                 promptInput.value = summary.prompt;
                             }
@@ -274,12 +353,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                         // Update the summary textarea if we have text
                         if (summaryText) {
                             const summaryTextarea = summaryDiv.querySelector('.summary-text');
-                            summaryTextarea.textContent = summaryText;
-                            
-                            summaryDiv.style.display = 'block';
-                            fileItem.classList.remove('retrieved');
-                            fileItem.classList.add('completed');
-                            statusSpan.textContent = 'Completed';
+                        summaryTextarea.textContent = summaryText;
+                        
+                        summaryDiv.style.display = 'block';
+                        fileItem.classList.remove('retrieved');
+                        fileItem.classList.add('completed');
+                        statusSpan.textContent = 'Completed';
                             statusSpan.className = 'file-status completed';
                             
                             // Show download button for completed files
@@ -500,7 +579,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
                     
                     addMessage(`File processed: ${fileData.name}`, 'success');
-                } else {
+                        } else {
                     statusSpan.textContent = 'Error';
                     statusSpan.className = 'file-status error';
                     addMessage(`Error processing file: ${data.error || 'Unknown error'}`, 'error');
@@ -608,9 +687,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         console.log('File summary saved:', {
                             id: fileId,
                             textLength: data.analysis.text.length,
-                            prompt: prompt
-                        });
-                        
+                prompt: prompt
+            });
+
                         // Update the UI
                         const summaryDiv = fileContainer.querySelector('.file-summary');
                         const summaryTextarea = summaryDiv.querySelector('.summary-text');
@@ -630,7 +709,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         }
                         
                         addMessage(`File processed: ${file.name}`, 'success');
-                    } else {
+            } else {
                         statusSpan.textContent = 'Error';
                         statusSpan.className = 'file-status error';
                         addMessage(`Error processing file: ${data.error || 'Unknown error'}`, 'error');

@@ -12,32 +12,57 @@
             <h1>PDF Processor</h1>
         </div>
 
+        <!-- Compact upload section -->
         <div class="file-upload-section">
             <div id="dropZone" class="upload-area">
                 <div class="upload-content">
                     <img src="upload-icon.svg" alt="Upload" class="upload-icon">
-                    <p>Drop PDF files here</p>
-                    <p class="sub-text">or click to select files</p>
+                    <p>Drop PDF files here or <span class="upload-text">click to upload</span></p>
                 </div>
                 <input type="file" id="fileInput" multiple accept=".pdf" style="display: none;">
             </div>
         </div>
 
-        <div id="fileList" class="file-list">
-            <!-- Files will be added here -->
-        </div>
-
-        <div class="chat-section">
-            <div id="chatMessages" class="chat-messages">
-                <!-- Chat messages will be added here -->
+        <!-- Two-column layout for file list and chat -->
+        <div class="main-content">
+            <!-- File list column -->
+            <div class="content-column file-column" id="fileColumn">
+                <div class="column-header-container">
+                    <h2 class="column-header">Files</h2>
+                    <button class="toggle-section" id="toggleFiles" title="Toggle files section">
+                        <svg viewBox="0 0 24 24" width="16" height="16" class="collapse-icon">
+                            <path fill="currentColor" d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="fileList" class="file-list">
+                    <!-- Files will be added here -->
+                </div>
             </div>
-            <div class="input-area">
-                <textarea id="userInput" placeholder="Type a question about your files..."></textarea>
-                <button id="sendButton" class="ripple">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
-                    </svg>
-                </button>
+
+            <!-- Chat column -->
+            <div class="content-column chat-column" id="chatColumn">
+                <div class="column-header-container">
+                    <h2 class="column-header">Chat</h2>
+                    <button class="toggle-section" id="toggleChat" title="Toggle chat section">
+                        <svg viewBox="0 0 24 24" width="16" height="16" class="collapse-icon">
+                            <path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="chat-section">
+                    <div id="chatMessages" class="chat-messages">
+                        <!-- Chat messages will be added here -->
+                    </div>
+                    <div class="input-area">
+                        <textarea id="userInput" placeholder="Ask questions about your files..."></textarea>
+                        <button id="sendButton" class="ripple">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="currentColor"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

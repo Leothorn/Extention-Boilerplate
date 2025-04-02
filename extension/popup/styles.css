@@ -81,9 +81,9 @@
 
 /* General styles */
 body {
-    width: 400px;
-    min-width: 400px;
-    max-width: 400px;
+    width: 600px; /* Increased width to accommodate side-by-side layout */
+    min-width: 600px;
+    max-width: 600px;
     height: 500px;
     margin: 0;
     padding: 0;
@@ -99,7 +99,7 @@ body {
     width: 100%;
     box-sizing: border-box;
     padding: 16px;
-    max-width: 400px;
+    max-width: 600px;
 }
 
 .header {
@@ -117,15 +117,38 @@ body {
     letter-spacing: 0.25px;
 }
 
-/* File upload section */
+/* Two-column layout */
+.main-content {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    height: calc(100% - 120px); /* Adjust height based on header + upload area */
+}
+
+.content-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.column-header {
+    margin: 0 0 8px 0;
+    font-size: var(--md-font-size-subtitle);
+    font-weight: 500;
+    color: var(--md-primary);
+}
+
+/* File upload section - more compact */
 .file-upload-section {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
 }
 
 .upload-area {
     border: 1px dashed rgba(0, 0, 0, 0.2);
     border-radius: var(--md-radius-medium);
-    padding: 20px;
+    padding: 12px;
     text-align: center;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -144,14 +167,14 @@ body {
 
 .upload-content {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: var(--md-spacing-unit);
+    justify-content: center;
+    gap: 8px;
 }
 
 .upload-icon {
-    width: 48px;
-    height: 48px;
+    width: 24px;
+    height: 24px;
     opacity: 0.7;
     color: var(--md-primary);
 }
@@ -159,38 +182,63 @@ body {
 .upload-content p {
     margin: 0;
     color: rgba(0, 0, 0, 0.6);
-}
-
-.upload-content .sub-text {
     font-size: var(--md-font-size-caption);
-    color: rgba(0, 0, 0, 0.38);
 }
 
-/* File list */
+.upload-text {
+    color: var(--md-primary);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* File list column */
+.file-column {
+    min-width: 280px; /* Ensure enough space for files */
+    max-width: 50%;
+}
+
 .file-list {
-    margin-top: 16px;
-    max-height: 320px;
+    flex: 1;
     overflow-y: auto;
     padding-right: 4px;
     scrollbar-width: thin;
     scrollbar-color: rgba(0,0,0,0.2) transparent;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: var(--md-radius-medium);
+    padding: 8px;
+    background-color: rgba(0,0,0,0.02);
 }
 
-.file-list::-webkit-scrollbar {
-    width: 8px;
+/* Chat column */
+.chat-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 280px;
+    max-width: 50%;
 }
 
-.file-list::-webkit-scrollbar-track {
-    background: transparent;
+.chat-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: var(--md-radius-medium);
+    overflow: hidden;
 }
 
-.file-list::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 20px;
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.02);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.2) transparent;
 }
 
+/* File container styling updates */
 .file-container {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     box-shadow: 0 1px 2px rgba(60,64,67,0.1);
     border: 1px solid rgba(0,0,0,0.1);
     border-radius: var(--md-radius-medium);
@@ -199,49 +247,29 @@ body {
     transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.file-container:hover {
-    box-shadow: var(--md-elevation-1);
-}
-
 .file-item {
     display: flex;
     align-items: center;
-    padding: calc(var(--md-spacing-unit) * 2);
+    padding: 8px; /* Reduced padding */
     border-bottom: 1px solid rgba(0, 0, 0, 0.12);
     transition: background-color 0.2s ease;
 }
 
+/* Make summary more compact */
 .file-summary {
-    padding: calc(var(--md-spacing-unit) * 2);
+    padding: 8px;
     background-color: var(--md-surface);
-}
-
-.summary-header {
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.6);
-    margin-bottom: var(--md-spacing-unit);
-    font-size: var(--md-font-size-subtitle);
+    max-height: 150px; /* Limit the height */
+    overflow-y: auto;
 }
 
 .summary-text {
     width: 100%;
-    min-height: 100px;
+    min-height: 80px;
+    max-height: 120px;
     padding: 8px;
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    border-radius: var(--md-radius-small);
-    font-size: var(--md-font-size-body);
-    line-height: 1.6;
-    color: var(--md-on-surface);
-    background-color: rgba(0, 0, 0, 0.02);
-    resize: vertical;
-    font-family: var(--md-font-family);
-}
-
-.summary-text:focus {
-    outline: none;
-    border-color: var(--md-primary);
-    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
-    background-color: var(--md-surface);
+    font-size: var(--md-font-size-caption);
+    line-height: 1.4;
 }
 
 .file-name {
@@ -252,22 +280,25 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 140px;
 }
 
 .file-size {
-    font-size: var(--md-font-size-caption);
+    font-size: 10px;
     color: rgba(0, 0, 0, 0.54);
-    margin: 0 calc(var(--md-spacing-unit) * 1.5);
+    margin: 0 4px;
+    white-space: nowrap;
 }
 
 .file-status {
     font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 12px;
-    margin-left: var(--md-spacing-unit);
-    font-size: var(--md-font-size-caption);
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+    font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
+    white-space: nowrap;
 }
 
 .file-status.uploaded {
@@ -331,14 +362,15 @@ body {
 .file-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
+    margin-left: auto;
 }
 
 .file-actions button {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 6px;
+    padding: 4px;
     margin-left: 2px;
     border-radius: 50%;
     display: inline-flex;
@@ -346,13 +378,13 @@ body {
     justify-content: center;
     transition: background-color 0.2s;
     color: #5f6368;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
 }
 
-.file-actions button:hover {
-    background-color: rgba(0, 0, 0, 0.06);
-    color: #202124;
+.file-actions button svg {
+    width: 14px;
+    height: 14px;
 }
 
 .file-actions .download-summary {
@@ -372,37 +404,6 @@ body {
 }
 
 /* Chat section */
-.chat-section {
-    margin-top: 16px;
-    display: flex;
-    flex-direction: column;
-    height: 180px;
-}
-
-.chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px;
-    background-color: rgba(0, 0, 0, 0.03);
-    border-radius: var(--md-radius-medium);
-    margin-bottom: 8px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0,0,0,0.2) transparent;
-}
-
-.chat-messages::-webkit-scrollbar {
-    width: 8px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 20px;
-}
-
 .message {
     margin-bottom: var(--md-spacing-unit);
     padding: calc(var(--md-spacing-unit) * 1.5);
@@ -461,17 +462,18 @@ body {
 
 .input-area {
     display: flex;
+    align-items: center;
     gap: 8px;
     padding: 8px;
-    border-radius: var(--md-radius-medium);
-    background-color: rgba(0, 0, 0, 0.03);
+    background-color: #f5f5f5;
+    border-top: 1px solid rgba(0,0,0,0.1);
 }
 
 .input-area textarea {
     flex: 1;
     min-height: 36px;
     max-height: 100px;
-    padding: 8px;
+    padding: 8px 12px;
     border: 1px solid rgba(0, 0, 0, 0.12);
     border-radius: var(--md-radius-small);
     font-family: var(--md-font-family);
@@ -481,14 +483,11 @@ body {
     background-color: var(--md-surface);
 }
 
-.input-area textarea:focus {
-    border-color: var(--md-primary);
-    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
-}
-
 .input-area button {
+    flex-shrink: 0;
     width: 36px;
     height: 36px;
+    min-width: 36px; /* Ensure fixed width */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -667,4 +666,216 @@ body {
 .apply-prompt:active {
     background-color: var(--md-primary-variant);
     box-shadow: var(--md-elevation-1);
+}
+
+/* Scrollbar styles for both columns */
+.file-list::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar,
+.file-summary::-webkit-scrollbar {
+    width: 6px;
+}
+
+.file-list::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track,
+.file-summary::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.file-list::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb,
+.file-summary::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 10px;
+}
+
+/* Summary header */
+.summary-header {
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+/* Input area styles */
+.input-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 600px) {
+    body {
+        width: 100%;
+        min-width: 350px;
+        height: auto;
+    }
+
+    .main-content {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .content-column {
+        max-width: 100%;
+        min-height: 200px;
+    }
+
+    .file-list,
+    .chat-section {
+        max-height: 250px;
+    }
+}
+
+/* Column header with toggle button */
+.column-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.toggle-section {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--md-primary);
+    transition: background-color 0.2s, transform 0.3s;
+}
+
+.toggle-section:hover {
+    background-color: rgba(26, 115, 232, 0.1);
+}
+
+.toggle-section .collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+/* Collapsed state styles - improving clickability and appearance */
+.content-column.collapsed {
+    flex: 0 0 auto;
+    width: 80px; /* Increased from 40px to 80px for wider horizontal appearance */
+    min-width: 80px;
+    max-width: 80px;
+    overflow: visible;
+    position: relative;
+    border: none;
+    background: none;
+    z-index: 10; /* Ensure collapsed panel stays above other content */
+}
+
+.content-column.collapsed .column-header-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80px; /* Match the width of the collapsed column */
+    height: 100%;
+    background-color: #f8f9fa;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: var(--md-radius-medium);
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin: 0;
+    z-index: 5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    cursor: pointer;
+}
+
+.content-column.collapsed .column-header {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    display: block;
+    font-size: 16px; /* Larger font size */
+    white-space: nowrap;
+    color: var(--md-primary);
+    font-weight: 500;
+    width: 70px; /* Control width of the rotated text */
+    text-align: center;
+}
+
+/* Ensure the toggle button is clearly visible and interactive */
+.content-column.collapsed .toggle-section {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(26, 115, 232, 0.1);
+    width: 32px;
+    height: 32px;
+    z-index: 6;
+    border-radius: 50%;
+    border: 1px solid rgba(26, 115, 232, 0.2);
+}
+
+.content-column.collapsed .toggle-section:hover {
+    background-color: rgba(26, 115, 232, 0.2);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* Add an indicator line to show the collapsed state more clearly */
+.content-column.collapsed::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 70px;
+    width: 4px;
+    height: 40px;
+    background-color: rgba(26, 115, 232, 0.2);
+    border-radius: 2px;
+    transform: translateY(-50%);
+    z-index: 4;
+}
+
+/* Make the arrows more visible */
+.toggle-section .collapse-icon {
+    fill: var(--md-primary);
+    width: 20px;
+    height: 20px;
+}
+
+.content-column.collapsed .file-list,
+.content-column.collapsed .chat-section {
+    display: none;
+}
+
+/* Fix the rotation for each side */
+.file-column.collapsed .toggle-section .collapse-icon {
+    transform: rotate(-180deg);
+}
+
+.chat-column.collapsed .toggle-section .collapse-icon {
+    transform: rotate(0deg);
+}
+
+/* When expanded, rotate icons properly */
+.file-column.expanded .toggle-section .collapse-icon {
+    transform: rotate(0deg);
+}
+
+.chat-column.expanded .toggle-section .collapse-icon {
+    transform: rotate(-180deg);
+}
+
+/* When one section is collapsed, the other should expand */
+.content-column.expanded.auto-expand {
+    flex: 1;
+    min-width: 500px; /* Take more of the available space */
+}
+
+/* Animation for collapsing/expanding */
+.content-column {
+    transition: flex 0.3s ease, width 0.3s ease, min-width 0.3s ease;
 } 
